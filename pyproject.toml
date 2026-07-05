@@ -1,0 +1,21 @@
+[project]
+name = "label-printer-bp730"
+version = "0.2.0"
+description = "Label printer app for Godex BP730 — JSON label designs"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pillow>=10.0.0",
+    "pyusb>=1.2.0",
+    "libusb-package>=1.0.26",
+    "qrcode>=7.4",
+    "flask>=3.0",
+    "pywebview>=5.0",
+]
+
+[project.scripts]
+label = "labelprint.cli:main"
+label-app = "labelprint.launcher:main"
+
+[tool.uv]
+package = false

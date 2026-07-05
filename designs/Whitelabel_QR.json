@@ -1,0 +1,105 @@
+{
+  "name": "Whitelabel_QR",
+  "version": 1,
+  "setup": {
+    "label_length_mm": 76.0,
+    "label_width_mm": 50.0,
+    "gap_mm": 3.0,
+    "darkness": 8,
+    "speed": 3,
+    "copies": 1,
+    "dpi": 300,
+    "page_direction": "LandScape180"
+  },
+  "variables": [
+    {
+      "name": "evse_id",
+      "label": "EVSE-ID",
+      "default": "DE*CIQ*EUQ1V1JVYI7G5*1",
+      "computed": ""
+    },
+    {
+      "name": "qr_base_url",
+      "label": "QR base URL",
+      "default": "https://qr.chargeIQ.de",
+      "computed": ""
+    },
+    {
+      "name": "qr_url",
+      "label": "QR URL",
+      "default": "",
+      "computed": "{qr_base_url}/{evse_id}"
+    },
+    {
+      "name": "evse_id_line",
+      "label": "EVSE-ID line",
+      "default": "",
+      "computed": "EVSE-ID: {evse_id}"
+    }
+  ],
+  "elements": [
+    {
+      "id": "qr_1",
+      "type": "qr",
+      "x_mm": 11.333,
+      "y_mm": 26.667,
+      "width_mm": 24.167,
+      "height_mm": 24.167,
+      "anchor": "top-left",
+      "variable": "qr_url",
+      "content": ""
+    },
+    {
+      "id": "text_evse_1",
+      "type": "dynamic_text",
+      "x_mm": 1.333,
+      "y_mm": 55.083,
+      "width_mm": 50.0,
+      "height_mm": 2.833,
+      "anchor": "top-left",
+      "variable": "evse_id_line",
+      "font_size_pt": 7.0,
+      "alignment": "center",
+      "bold": false
+    },
+    {
+      "id": "text_2",
+      "type": "text",
+      "x_mm": 1.0,
+      "y_mm": 4.75,
+      "width_mm": 45.833,
+      "height_mm": 5.583,
+      "anchor": "top-left",
+      "content": "Scan&Charge",
+      "font_size_pt": 14.0,
+      "alignment": "center",
+      "bold": false
+    },
+    {
+      "id": "text_3",
+      "type": "text",
+      "x_mm": 1.667,
+      "y_mm": 59.917,
+      "width_mm": 44.833,
+      "height_mm": 3.25,
+      "anchor": "top-left",
+      "content": "Viel Spa\u00df beim Laden! \nBei Problemen bitte an den Betreiber wenden.",
+      "font_size_pt": 8.0,
+      "alignment": "center",
+      "bold": false
+    },
+    {
+      "id": "text_4",
+      "type": "text",
+      "x_mm": 2.0,
+      "y_mm": 12.917,
+      "width_mm": 44.833,
+      "height_mm": 3.25,
+      "anchor": "top-left",
+      "content": "Einfach laden, ohne App und ohne Nutzerkonto:\nScannen, Zahlungsmethode w\u00e4hlen, laden.\n",
+      "font_size_pt": 8.0,
+      "alignment": "center",
+      "bold": false
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{% if error %}
+<div class="preview-error">{{ error }}</div>
+{% elif placeholder %}
+<div class="preview-placeholder">{{ message }}</div>
+{% elif token %}
+<div class="preview-content">
+  <div class="preview-toolbar">
+    <p class="qr-url"><span>QR URL:</span> {{ qr_url }}</p>
+    <div class="preview-actions">
+      <button type="button"
+              class="btn btn-secondary"
+              onclick="downloadPreview('{{ token }}', '{{ download_filename }}')">
+        Download image
+      </button>
+      <span id="download-status" class="download-status"></span>
+    </div>
+  </div>
+  <img src="{{ url_for('preview_image', token=token) }}"
+       alt="Label preview"
+       class="preview-image">
+</div>
+{% else %}
+<div class="preview-placeholder">Enter an EVSE-ID to see a preview.</div>
+{% endif %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block page_class %}page-print{% endblock %}
+
+{% block content %}
+<header class="header header-with-nav">
+  <div>
+    <h1>Label Printer BP730</h1>
+  </div>
+  <nav class="top-nav">
+    <a class="btn btn-secondary" href="{{ url_for('designer') }}">Label designer</a>
+  </nav>
+</header>
+
+<main class="card">
+  <form id="label-form"
+        hx-post="{{ url_for('preview') }}"
+        hx-trigger="change from:select, input changed delay:500ms from:#variables-pane, change from:#variables-pane"
+        hx-target="#preview-pane"
+        hx-indicator="#preview-loading">
+
+    <div class="print-layout">
+      <div class="print-main">
+        <div class="field">
+          <label for="template">Design</label>
+          <select id="template"
+                  name="template"
+                  required
+                  hx-get="{{ url_for('template_variables') }}"
+                  hx-target="#variables-pane"
+                  hx-trigger="change"
+                  hx-include="this"
+                  hx-on::after-request="htmx.trigger('#label-form', 'input')">
+            {% for t in templates %}
+            <option value="{{ t.name }}" {% if t.name == default_template %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <details class="advanced">
+          <summary>Advanced options</summary>
+          <div class="field">
+            <label for="rotate">Rotation</label>
+            <select id="rotate" name="rotate">
+              <option value="0">0° (default)</option>
+              <option value="90">90°</option>
+              <option value="180">180°</option>
+              <option value="270">270°</option>
+            </select>
+          </div>
+        </details>
+      </div>
+
+      <aside class="print-variables" id="variables-pane">
+        {% include "partials/variables.html" %}
+      </aside>
+    </div>
+  </form>
+
+  <div class="actions">
+    <button type="button"
+            class="btn btn-primary"
+            hx-post="{{ url_for('print_label') }}"
+            hx-include="#label-form"
+            hx-target="#message-pane"
+            hx-indicator="#print-loading">
+      Print label
+    </button>
+    <span id="print-loading" class="htmx-indicator">Printing…</span>
+  </div>
+
+  <div id="message-pane"></div>
+
+  <section class="preview-section">
+    <div class="preview-header">
+      <h2>Preview</h2>
+      <span id="preview-loading" class="htmx-indicator">Updating…</span>
+    </div>
+    <div id="preview-pane">
+      {% include "partials/preview.html" %}
+    </div>
+  </section>
+</main>
+{% endblock %}

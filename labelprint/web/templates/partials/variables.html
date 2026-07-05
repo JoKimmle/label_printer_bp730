@@ -1,0 +1,27 @@
+{% if input_variables %}
+  {% for var in input_variables %}
+  <div class="field">
+    <label for="var_{{ var.name }}">{{ var.label or var.name }}</label>
+    <input type="text"
+           id="var_{{ var.name }}"
+           name="var_{{ var.name }}"
+           value="{{ var.default }}"
+           placeholder="{{ var.default }}"
+           autocomplete="off"
+           spellcheck="false">
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="hint">No input variables for this template.</p>
+{% endif %}
+
+{% if computed_variables %}
+  <div class="computed-variables">
+    {% for var in computed_variables %}
+    <p class="hint computed-var">
+      <strong>{{ var.label or var.name }}</strong>
+      · computed: <code>{{ var.computed }}</code>
+    </p>
+    {% endfor %}
+  </div>
+{% endif %}
