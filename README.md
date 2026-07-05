@@ -1,6 +1,8 @@
-# Label Printer BP730
+# Label Printing with Godex BP730 made simple
 
-Print labels on a Godex BP730 from JSON label designs.
+**Ditch the driver and printer tool drama for printing with Godex BP730.** Print JSON label designs directly to your Godex BP730; zero fuss required.
+
+*Full disclosure: Built with vibe-coding-tools.*
 
 ## Why this exists
 
@@ -38,7 +40,7 @@ Connect the BP730 via USB before printing. If the label prints upside down, open
 
 ### First-time setup
 
-Copy the whole folder to the office Mac, then **run setup once in Terminal**:
+Copy the whole folder to the Mac, then **run setup once in Terminal**:
 
 ```bash
 cd /path/to/label_printer_bp730
