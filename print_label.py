@@ -70,23 +70,41 @@ def send_usb_direct(
     except (usb.core.USBError, NotImplementedError):
         pass
 
-    dev.set_configuration()
-    cfg = dev.get_active_configuration()
-    intf = cfg[(0, 0)]
-    ep_out = usb.util.find_descriptor(
-        intf,
-        custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress)
-        == usb.util.ENDPOINT_OUT,
-    )
-    if ep_out is None:
-        raise RuntimeError("No USB OUT endpoint on BP730.")
+    # Only set configuration when needed. Calling set_configuration() while the
+    # desired config is already active is a lightweight USB reset and can leave
+    # the BP730 inaccessible until power-cycled (Errno 13 on the next open).
+    try:
+        cfg = dev.get_active_configuration()
+    except usb.core.USBError:
+        cfg = None
+    if cfg is None:
+        dev.set_configuration()
+        cfg = dev.get_active_configuration()
 
-    offset = 0
-    while offset < len(data):
-        written = ep_out.write(data[offset : offset + 4096], timeout=30_000)
-        if written <= 0:
-            raise RuntimeError("USB write to printer failed.")
-        offset += written
+    intf = cfg[(0, 0)]
+    usb.util.claim_interface(dev, intf.bInterfaceNumber)
+    try:
+        ep_out = usb.util.find_descriptor(
+            intf,
+            custom_match=lambda e: usb.util.endpoint_direction(e.bEndpointAddress)
+            == usb.util.ENDPOINT_OUT,
+        )
+        if ep_out is None:
+            raise RuntimeError("No USB OUT endpoint on BP730.")
+
+        offset = 0
+        while offset < len(data):
+            written = ep_out.write(data[offset : offset + 4096], timeout=30_000)
+            if written <= 0:
+                raise RuntimeError("USB write to printer failed.")
+            offset += written
+    finally:
+        # Release exclusive USB access so the next print can open the device.
+        try:
+            usb.util.release_interface(dev, intf.bInterfaceNumber)
+        except usb.core.USBError:
+            pass
+        usb.util.dispose_resources(dev)
 
     print(f"Sent {len(data)} bytes to BP730 via direct USB")
 
