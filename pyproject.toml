@@ -1,6 +1,6 @@
 [project]
 name = "label-printer-bp730"
-version = "0.2.0"
+version = "0.3.0"
 description = "Label printer app for Godex BP730 — JSON label designs"
 readme = "README.md"
 requires-python = ">=3.11"
