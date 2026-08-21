@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import json
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +29,8 @@ from labelprint.core import (
     resolve_design,
     run_job,
 )
+from labelprint.paths import is_installed
+from labelprint.update import apply_update, check_update, local_version
 
 # token -> preview PNG metadata (in-memory for current session)
 @dataclass
@@ -53,21 +54,15 @@ def _safe_filename(template: str, evse_id: str) -> str:
     return f"{template}_{safe_id}.png"
 
 
-def _form_values() -> tuple[str, int, dict[str, str]]:
+def _form_values() -> tuple[str, dict[str, str]]:
     template = (request.form.get("template") or "").strip()
-    try:
-        rotate = int(request.form.get("rotate") or 0)
-    except ValueError:
-        rotate = 0
-    if rotate not in (0, 90, 180, 270):
-        rotate = 0
 
     values: dict[str, str] = {}
     for key, value in request.form.items():
         if key.startswith("var_"):
             values[key[4:]] = (value or "").strip()
 
-    return template, rotate, values
+    return template, values
 
 
 def _missing_input_variable(template: str, values: dict[str, str]):
@@ -77,7 +72,7 @@ def _missing_input_variable(template: str, values: dict[str, str]):
     return None
 
 
-def _build_job(template: str, values: dict[str, str], rotate: int) -> LabelJob:
+def _build_job(template: str, values: dict[str, str]) -> LabelJob:
     source_path = resolve_design(template)
     evse_id = values.get("evse_id", "")
     qr_base_url = values.get("qr_base_url") or DEFAULT_QR_BASE_URL
@@ -85,7 +80,6 @@ def _build_job(template: str, values: dict[str, str], rotate: int) -> LabelJob:
         template=source_path,
         evse_id=evse_id,
         qr_base_url=qr_base_url,
-        rotate=rotate,
         variable_values=values,
     )
 
@@ -104,6 +98,31 @@ def create_app() -> Flask:
         static_folder=str(Path(__file__).parent / "static"),
     )
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+
+    @app.context_processor
+    def inject_app_meta():
+        try:
+            version = local_version()
+        except (OSError, ValueError, KeyError):
+            version = ""
+        return {
+            "app_version": version,
+            "app_installed": is_installed(),
+        }
+
+    @app.get("/api/updates/check")
+    def updates_check():
+        try:
+            return jsonify(check_update())
+        except RuntimeError as exc:
+            return jsonify({"error": str(exc)}), 502
+
+    @app.post("/api/updates/apply")
+    def updates_apply():
+        try:
+            return jsonify(apply_update())
+        except RuntimeError as exc:
+            return jsonify({"error": str(exc)}), 400
 
     @app.get("/")
     def index():
@@ -215,7 +234,7 @@ def create_app() -> Flask:
 
     @app.post("/preview")
     def preview():
-        template, rotate, values = _form_values()
+        template, values = _form_values()
         missing = _missing_input_variable(template, values)
         if not template or missing:
             label = missing.label if missing else "variables"
@@ -225,7 +244,7 @@ def create_app() -> Flask:
                 message=f"Enter {label} to see a preview.",
             )
         try:
-            job = _build_job(template, values, rotate)
+            job = _build_job(template, values)
             result = run_job(
                 job,
                 preview=True,
@@ -255,7 +274,7 @@ def create_app() -> Flask:
 
     @app.post("/print")
     def print_label():
-        template, rotate, values = _form_values()
+        template, values = _form_values()
         missing = _missing_input_variable(template, values)
         if not template or missing:
             label = missing.label if missing else "all variables"
@@ -264,7 +283,7 @@ def create_app() -> Flask:
                 error=f"Select a template and enter {label}.",
             )
         try:
-            job = _build_job(template, values, rotate)
+            job = _build_job(template, values)
             run_job(
                 job,
                 preview=False,
