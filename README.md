@@ -1,116 +1,113 @@
-# Label Printing with Godex BP730 made simple
+# Label printer BP730
 
-**Ditch the driver and printer tool drama for printing with Godex BP730.** Print JSON label designs directly to your Godex BP730; zero fuss required.
+This Mac app is used to operate the Labelident BP730 thermo direct label printer. It includes a reverse-engineered print pipeline, print menu, and label template designer.
 
-*Full disclosure: Built with vibe-coding-tools.*
+## Why this exists - the problem
 
-## Why this exists
+Officially the BP730 is run with GoLabel. It is Windows-only. The template designer is clumsy. Labels are proprietary `.ezpx` files with no variables. There is no batch printing. No macOS or Linux app.
 
-Godex BP730 labels are usually designed in **GoLabel** — Windows-only, proprietary `.ezpx` files, no variables. Batch printing means open label, change text, print, repeat.
+## What this is - the solution
 
-On Mac there is no sane end-to-end workflow (design → variables → preview → print). Godex offers a **CUPS driver** (`rastertoezpl` `.pkg`): right-click Open on the pkg, Gatekeeper prompts, manual `.ppd` selection from `/usr/local/share/ppd/godex`, sometimes **GoTools** + `^XSET,USBSPEED,0` for USB. Result: a CUPS queue and the system print dialog (raster → EZPL filter). No designer, no variables. GoLabel stays Windows-only.
+A Mac tool that skips that stack.
 
-This repo skips drivers and CUPS — render label to bitmap, wrap in EZPL, send raw over USB:
+- Fast, because it never talks to GoLabel or a vendor driver
+- No Godex driver, no CUPS, no leftover 3rd-party USB stack from a CD
+- A simple label designer in the app
+- One JSON template with named variables. Fill values, print, change values, print again. That is the batch workflow GoLabel does not have.
 
-- **JSON templates** in `designs/` with named variables
-- **Web UI + designer** — template, fields, live preview, print
-- **Direct USB** via pyusb (no `.pkg`, no PPD)
-- **CLI** for scripting
+Two ways in: a UI (template designer + print menu) and a CLI for scripted runs. Same printer path.
 
-Preview and print share the same raster path.
+## How it prints
 
-## Setup
+We reverse-engineered enough of the BP730 print path to throw the official stack away. The label is rendered to a 1-bit bitmap, wrapped as Godex BMP inside EZPL, and sent raw over USB.
 
-```bash
-uv sync
-```
+Preview PNG and print share that raster, so the PNG-preview is what the printer gets.
 
-## Office app (recommended) - tested on mac only
+## Install
 
-Double-click **Start Labels.command** on the Mac (or run `uv run python -m labelprint.launcher`).
+Download the projects zip of `main` [Label printer BP730](https://github.com/JoKimmle/label_printer_bp730/archive/refs/heads/main.zip), unpack it, and double-click `Install Label Printer Software.command` inside that folder.
 
-A window opens with:
+The installer:
 
-1. Pick a **design** from the dropdown
-2. Fill in the **variables** on the right (depends on the design)
-3. Preview updates automatically while typing
-4. Click **Print label** when ready
+- copies the app into `~/Library/Application Support/Label Printer BP730/app/`
+- seeds stock designs into `…/data/designs/` without overwriting labels you already saved
+- runs `uv sync`
+- puts **Label Printer BP730** in Applications
 
-Connect the BP730 via USB before printing. If the label prints upside down, open **Advanced options** and set rotation to 180°.
+Open it from Applications, Spotlight, or the Dock. Plug in the BP730 over USB before you print.
 
-### First-time setup
+Needs Python 3.11+. The installer fetches [uv](https://docs.astral.sh/uv/) if it is missing.
 
-Copy the whole folder to the Mac, then **run setup once in Terminal**:
+### Updates
 
-```bash
-cd /path/to/label_printer_bp730
-python3 office_setup.py
-```
+The header shows the version from `pyproject.toml`. **Check for updates** compares that to GitHub `main`. If `main` is newer, the button becomes **Update to X.Y.Z**, downloads the zip, installs it, and restarts.
 
-This fixes Windows line endings (the `bad interpreter: /bin/bash^M` error), installs dependencies, and prepares the launchers.
 
-Then double-click **Start Labels.command**.
+## Print
 
-If **Start Labels.command** still fails immediately after copying (before setup), the copy method may have broken line endings — always run `python3 office_setup.py` first. Do not copy only the `.command` file to the Desktop; keep the whole project folder together.
+Pick a design, fill in the variables on the right, watch the preview catch up as you type, hit **Print label**. Portrait designs rotate to landscape so they fit one physical label. The preview matches that orientation.
 
-Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+ on the office Mac:
+## Design
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+Open **Label designer** from the app. Designs save as JSON and show up in the print dropdown. Installed app stores them under Application Support.
 
-### Label designer
+Elements you can drop on a label:
 
-Open **Label designer** from the app (or go to `/designer`) to create and edit label layouts.
+- Static text, fixed copy
+- Dynamic text, bound to a variable
+- QR code, bound to a variable
+- Image, a logo or icon you upload
+- Box, outline or filled rectangle
 
-Designs are saved as JSON files in `designs/` and appear in the print dropdown automatically.
+The **Variables** panel (left sidebar) is where fields live: name, label, default sample value, optional formula such as `{base_url}/{id}`. Dynamic text and QR elements pick from that list. **Preview values** (right sidebar) is sample data for the live preview, not what gets printed unless you type the same thing on the print screen.
 
-Supported elements:
+## CLI
 
-- **Static text** — fixed copy on the label
-- **Dynamic text** — bound to a design variable
-- **QR code** — bound to a design variable
-- **Image** — upload a logo or icon
-- **Box** — outline or filled rectangle
-
-Use the **Variables** panel (left sidebar) to create and manage fields: name, label, default sample value, and optional computed formula (e.g. `{base_url}/{id}`). Dynamic text and QR elements pick from these variables. **Preview values** (right sidebar) set sample data for the live preview.
-
-## CLI - general use
+Same printer path as the UI. Script it when clicking Print forty times would be the joke.
 
 ```bash
-# List available designs
 uv run python label.py --list
 
-# Preview only
 uv run python label.py \
   --template my_label \
   --evse-id "ABC-123" \
   --preview --open
 
-# Print via USB
 uv run python label.py \
   --template my_label \
   --evse-id "ABC-123" \
   --print
 ```
 
-Design names are the `.json` filename without extension. Output goes to `output/<design>_<id>.png` and `.ezpl`.
+Design names are the `.json` filename without the extension. Output lands in `output/<design>_<id>.png` and `.ezpl`.
 
-## Architecture
+## Develop from this folder
 
-| Path | Role |
-|------|------|
-| `Start Labels.command` | Double-click launcher for office users |
+```bash
+uv sync
+uv run python -m labelprint.launcher
+```
+
+Or double-click `Start Labels.command`. Designs and output stay here (`designs/`, `output/`).
+
+## Troubleshooting
+
+If `Install Label Printer Software.command` dies with `bad interpreter: /bin/bash^M`, the copy turned Unix line endings into Windows ones. Run `python3 office_setup.py` once from Terminal. Keep the whole project folder together. Do not copy only the `.command` file.
+
+## Where things live
+
+| Path | What it is |
+|------|------------|
+| `Install Label Printer Software.command` / `office_setup.py` | Install into Application Support + Applications |
+| `macos_install.py` | Copy app files, seed designs, `uv sync`, write the `.app` |
+| `assets/label-printer-app-icon.png` | macOS app icon source |
+| `Start Labels.command` | Double-click launcher for development in this folder |
 | `labelprint/launcher.py` | pywebview window + Flask server |
 | `labelprint/web/` | Flask + HTMX UI |
+| `labelprint/paths.py` | App vs user-data directories |
 | `label.py` | CLI entry point |
 | `labelprint/core.py` | Shared label job logic |
-| `designs/` | JSON label designs |
+| `designs/` | Stock JSON designs (seeded on install) |
 | `label_design.py` | JSON design format and renderer |
 | `label_setup.py` | Label dimensions and mm/dot helpers |
 | `raster_ezpl.py` | Wrap PNG in EZPL for printing |
-
-## Printing notes
-
-- Use direct USB (the app and `--print` flag). Do not install the Godex CUPS driver for this workflow — it is not needed, and sending raw EZPL through CUPS garbles output on this model.
-- Preview PNG matches what the printer receives (same raster → EZPL path).
