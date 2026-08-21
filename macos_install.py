@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
-import tomllib
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -102,12 +102,18 @@ def ensure_uv() -> str:
     return uv
 
 
+_VERSION_LINE = re.compile(
+    r'^version\s*=\s*["\']([^"\']+)["\']',
+    re.MULTILINE,
+)
+
+
 def read_version_from_text(text: str) -> str:
-    data = tomllib.loads(text)
-    version = data.get("project", {}).get("version")
-    if not version:
+    """Read project.version without tomllib so system python3.9 still works."""
+    match = _VERSION_LINE.search(text)
+    if not match:
         raise ValueError("No project.version in pyproject.toml")
-    return str(version)
+    return match.group(1)
 
 
 def read_version(pyproject: Path) -> str:
