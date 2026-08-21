@@ -10,10 +10,11 @@
 {% block content %}
 <header class="header header-with-nav">
   <div>
-    <h1>Label Designer</h1>
+    <h1>Label Designer <span class="app-version">v{{ app_version }}</span></h1>
     <p class="subtitle">Create JSON label designs with text, QR codes, images, and boxes.</p>
   </div>
   <nav class="top-nav">
+    {% include "partials/update_controls.html" %}
     <a class="btn btn-secondary" href="{{ url_for('index') }}">Print labels</a>
   </nav>
 </header>
