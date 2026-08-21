@@ -27,7 +27,7 @@ Examples:
   %(prog)s --list
   %(prog)s --template GLS_QR_new --evse-id "DE*CIQ*ABC*1" --preview
   %(prog)s --template GLS_QR_new --evse-id "DE*CIQ*ABC*1" --preview --print
-  %(prog)s --template chargeIQ_QR --evse-id "DE*CIQ*ABC*1" --print --rotate 180
+  %(prog)s --template chargeIQ_QR --evse-id "DE*CIQ*ABC*1" --print
         """.strip(),
     )
     parser.add_argument(
@@ -66,8 +66,8 @@ Examples:
         "--rotate",
         type=int,
         choices=(0, 90, 180, 270),
-        default=0,
-        help="Rotate label if print orientation is wrong",
+        default=None,
+        help="Override auto landscape rotation (portrait designs rotate 90° for the BP730)",
     )
     parser.add_argument(
         "--designs-dir",

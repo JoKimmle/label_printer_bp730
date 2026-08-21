@@ -6,10 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from label_design import DesignVariable, default_design, load_design, render_design, resolve_design_variables
+from label_setup import LabelSetup
+from labelprint.paths import designs_dir, output_dir
 from raster_ezpl import wrap_bitmap_in_ezpl
 
-DEFAULT_DESIGNS_DIR = Path(__file__).resolve().parent.parent / "designs"
-DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
+DEFAULT_DESIGNS_DIR = designs_dir()
+DEFAULT_OUTPUT_DIR = output_dir()
 DEFAULT_QR_BASE_URL = "https://qr.chargeIQ.de/"
 
 
@@ -24,7 +26,7 @@ class LabelJob:
     template: Path
     evse_id: str
     qr_base_url: str = DEFAULT_QR_BASE_URL
-    rotate: int = 0
+    rotate: int | None = None
     variable_values: dict[str, str] | None = None
 
 
@@ -89,6 +91,13 @@ def get_input_variables(name_or_path: str | Path) -> list[DesignVariable]:
     return [var for var in get_template_variables(name_or_path) if not var.computed]
 
 
+def print_rotate_for_landscape(setup: LabelSetup) -> int:
+    """Rotate portrait canvases 90° so the BP730 receives landscape media."""
+    if setup.label_length_mm > setup.label_width_mm:
+        return 90
+    return 0
+
+
 def _safe_evse_id(evse_id: str) -> str:
     return evse_id.replace("*", "_").replace("/", "_")
 
@@ -132,14 +141,15 @@ def run_job(
     ezpl_path = out_dir / f"{stem}.ezpl"
 
     design = load_design(source_path)
-    bitmap = render_design(design, variables=variables, mode="1", rotate=job.rotate)
-    ezpl_bytes = wrap_bitmap_in_ezpl(bitmap, design.setup, rotate=job.rotate)
+    rotate = job.rotate if job.rotate is not None else print_rotate_for_landscape(design.setup)
+    bitmap = render_design(design, variables=variables, mode="1", rotate=rotate)
+    ezpl_bytes = wrap_bitmap_in_ezpl(bitmap, design.setup, rotate=rotate)
     ezpl_path.write_bytes(ezpl_bytes)
 
     preview_path: Path | None = None
     if preview:
         preview_path = out_dir / f"{stem}.png"
-        img = render_design(design, variables=variables, rotate=job.rotate or 0)
+        img = render_design(design, variables=variables, rotate=rotate)
         img.save(preview_path)
 
     printed = False
